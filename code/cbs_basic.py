@@ -4,6 +4,8 @@ import random
 
 from a_star_class import A_Star, get_location, get_sum_of_cost, compute_heuristics
 
+DEBUG = False
+
 def detect_collision(path1, path2):
     ##############################
     # Task 3.1: Return the first collision that occurs between two robot paths (or None if there is no collision)
@@ -179,15 +181,22 @@ class CBSSolver(object):
 
     def pop_node(self):
         _, _, id, node = heapq.heappop(self.open_list)
-        print("Expand node {}".format(id))
+        # print("Expand node {}".format(id))
         self.num_of_expanded += 1
         return node
 
 
-    def find_solution(self, disjoint):
-        """ Finds paths for all agents from their start locations to their goal locations
+    def find_solution(self, disjoint, print_results=False):
+        """
+        Finds paths for all agents from their start locations to their goal locations
 
-        disjoint         - use disjoint splitting or not
+        Parameters:
+            disjoint - boolean value indicating whether to use disjoint splitting or not
+
+        Returns:
+            - paths - list of paths, one for each agent, that satisfies all constraints
+            - num_of_generated - number of nodes generated
+            - num_of_expanded - number of nodes expanded 
         """
 
         self.start_time = timer.time()
@@ -197,7 +206,8 @@ class CBSSolver(object):
         else:
             splitter = standard_splitting
 
-        print("USING: ", splitter)
+        if DEBUG:
+            print("USING: ", splitter)
 
         AStar = A_Star
 
@@ -240,11 +250,12 @@ class CBSSolver(object):
             #     return None
             p = self.pop_node()
             if p['collisions'] == []:
-                self.print_results(p)
-                for pa in p['paths']:
-                    print(pa)
+                if print_results:
+                    self.print_results(p)
                 return p['paths'], self.num_of_generated, self.num_of_expanded # number of nodes generated/expanded for comparing implementations
+
             collision = p['collisions'].pop(0)
+
             # constraints = standard_splitting(collision)
             # constraints = disjoint_splitting(collision)
             constraints = splitter(collision)
@@ -260,7 +271,7 @@ class CBSSolver(object):
                         q['constraints'].append(c)
                 for pa in p['paths']:
                     q['paths'].append(pa)
-                
+
                 ai = constraint['agent']
                 astar = AStar(self.my_map,self.starts, self.goals,self.heuristics,ai,q['constraints'])
                 path = astar.find_paths()
@@ -285,7 +296,7 @@ class CBSSolver(object):
                     self.push_node(q)     
         return None
 
-    def print_results(self, node):
+    def print_results(self, node, show_paths = False):
         print("\n Found a solution! \n")
         CPU_time = timer.time() - self.start_time
         print("CPU time (s):    {:.2f}".format(CPU_time))
@@ -293,6 +304,7 @@ class CBSSolver(object):
         print("Expanded nodes:  {}".format(self.num_of_expanded))
         print("Generated nodes: {}".format(self.num_of_generated))
 
-        print("Solution:")
-        for i in range(len(node['paths'])):
-            print("agent", i, ": ", node['paths'][i])
+        if show_paths:
+            print("Solution:")
+            for i in range(len(node['paths'])):
+                print("agent", i, ": ", node['paths'][i])

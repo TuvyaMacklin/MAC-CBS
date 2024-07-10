@@ -4,6 +4,8 @@ from itertools import product
 import numpy as np
 import copy
 
+DEBUG = False
+
 def move(loc, dir):
     directions = [(0, -1), (1, 0), (0, 1), (-1, 0), (0, 0)]
     return loc[0] + directions[dir][0], loc[1] + directions[dir][1]
@@ -72,7 +74,8 @@ def get_path(goal_node,meta_agent):
         path[i].reverse()
         assert path[i] is not None
 
-        print(path[i])
+        if DEBUG:
+            print(path[i])
 
         if len(path[i]) > 1: 
             # remove trailing duplicates
@@ -351,11 +354,13 @@ class A_Star(object):
 
         self.start_time = timer.time()
 
-        print("> build constraint table")
+        if DEBUG:
+            print("> build constraint table")
 
         for i, a in enumerate(self.agents):
             table_i = self.build_constraint_table(a)
-            print(table_i)
+            if DEBUG:
+                print(table_i)
             self.c_table.append(table_i)
             if table_i.keys():
                 self.max_constraints[i] = max(table_i.keys())
@@ -421,7 +426,8 @@ class A_Star(object):
                 if (tuple(child['loc']),child['timestep']) in self.closed_list:
                     existing = self.closed_list[(tuple(child['loc']),child['timestep'])]
                     if (child['g_val'] + child['h_val'] < existing['g_val'] + existing['h_val']) and (child['g_val'] < existing['g_val']) and child['reached_goal'].count(False) <= existing['reached_goal'].count(False):
-                        print("child is better than existing in closed list")
+                        if DEBUG:
+                            print("child is better than existing in closed list")
                         self.closed_list[(tuple(child['loc']),child['timestep'])] = child
                         self.push_node(child)
                 else:
@@ -439,7 +445,8 @@ class A_Star(object):
             # if (tuple(curr['loc']),curr['timestep']) not in self.closed_list:
             #     self.closed_list[(tuple(curr['loc']),curr['timestep'])] = curr
 
-        print('no solution')
+        if DEBUG:
+            print('no solution')
 
         # print("\nEND OF A*\n") # comment out if needed
         return None        

@@ -76,6 +76,92 @@ def import_mapf_instance(filename):
     f.close()
     return my_map, starts, goals
 
+def run_all_tests(args):
+    '''
+    This command runs all the tests in the instances folder and prints out a summary of the results.
+    It is useful for checking completeness in the solvers.
+
+    Parameters:
+        args: The arguments from the command line
+    '''
+
+    # Iterate over files test_1.txt to test_57.txt
+    files = ["instances/test_{}.txt".format(i) for i in range(1, 58)]
+
+    actual = get_actual_results("instances/min-sum-of-cost.csv")
+
+    successes = 0
+
+    for file in files:
+        try:
+            if run_test(file, args, actual[file]):
+                successes += 1
+        except BaseException as e:
+            print("Test failed for file {}. Error: {}".format(file, e))
+
+    print("Tests passed: {}/57".format(successes))
+
+def get_actual_results(filename):
+    '''
+    This function reads the actual results from the min-sum-of-cost.csv file.
+
+    Parameters:
+        filename: The name of the file to read from
+
+    Returns:
+        A dictionary mapping the filename to the sum of costs
+    '''
+
+    f = open(filename, 'r')
+    lines = f.readlines()
+    f.close()
+
+    actual = {}
+
+    for line in lines:
+        parts = line.split(',')
+        actual[parts[0]] = int(parts[1])
+
+    return actual
+
+def run_test(file, args, actual):
+    '''
+    This function runs a single test and compares the result to the expected result.
+
+    Parameters:
+        file: The name of the file to run
+        args: The arguments from the command line
+        actual: The actual result of the test
+
+    Returns:
+        True if the test passed, False otherwise
+    '''
+
+    my_map, starts, goals = import_mapf_instance(file)
+
+    if args.hlsolver == "CBS":
+        cbs = CBSSolver(my_map, starts, goals)
+        cbs.find_solution(args.disjoint)
+    elif args.hlsolver == "ICBS":
+        cbs = ICBS_Solver(my_map, starts, goals)
+    else:
+        raise RuntimeError("Unknown solver!")
+    
+    paths, _, _ = cbs.find_solution(args.disjoint)
+
+    if paths is None:
+        raise BaseException('No solutions')
+    
+    cost = get_sum_of_cost(paths)
+    
+    if cost == actual:
+        print("Test passed for file {}. Cost: {}".format(file, cost))
+        return True
+    else:
+        print("Test failed for file {}. Expected: {}, Actual: {}".format(file, actual, cost))
+        return False
+
+    
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Runs various MAPF algorithms')
@@ -87,10 +173,15 @@ if __name__ == '__main__':
                         help='Use the disjoint splitting')
     parser.add_argument('--hlsolver', type=str, default=HLSOLVER,
                         help='The solver to use (one of: {CBS,ICBS_CB,ICBS}), defaults to ' + str(HLSOLVER))
+    parser.add_argument('--run_all_tests', action='store_true', default=False,
+                        help='Run all tests in the instances folder. Used for checking completeness of the solvers.')
     # parser.add_argument('--llsolver', type=str, default=LLSOLVER,
     #                     help='The solver to use (one of: {a_star,pea_star,epea_star}), defaults to ' + str(LLSOLVER))
     args = parser.parse_args()
 
+    if args.run_all_tests:
+        run_all_tests(args)
+        exit()
 
     result_file = open("results.csv", "w", buffering=1)
 
@@ -162,7 +253,7 @@ if __name__ == '__main__':
 
 
 
-        solution = cbs.find_solution(args.disjoint)
+        solution = cbs.find_solution(args.disjoint, print_results=True)
 
         if solution is not None:
             # print(solution)
