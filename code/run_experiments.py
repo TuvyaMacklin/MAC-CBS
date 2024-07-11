@@ -141,7 +141,6 @@ def run_test(file, args, actual):
 
     if args.hlsolver == "CBS":
         cbs = CBSSolver(my_map, starts, goals)
-        cbs.find_solution(args.disjoint)
     elif args.hlsolver == "ICBS":
         cbs = ICBS_Solver(my_map, starts, goals)
     else:
@@ -160,7 +159,84 @@ def run_test(file, args, actual):
     else:
         print("Test failed for file {}. Expected: {}, Actual: {}".format(file, actual, cost))
         return False
+    
 
+def benchmark_instance(file, args, print_results=False):
+    '''
+    This function runs a single instance through the solver without disjoing splitting and compares it to that with disjoint splitting.
+    It prints out the amount of nodes generated and expanded for both cases.
+
+    Parameters:
+        file: The name of the file to run
+        args: The arguments from the command line
+    '''
+
+    # Assert that the solver is CBS
+    if not args.hlsolver == "CBS":
+        raise Exception("Benchmarking only works with CBS")
+
+    # Set up the results dictionary
+    results = {
+        "standard_splitting": {},
+        "disjoint_splitting": {}
+    }
+
+    # Load the instance
+    my_map, starts, goals = import_mapf_instance(file)
+
+    # Run with standard splitting
+    cbs = CBSSolver(my_map, starts, goals)
+    paths, results["standard_splitting"]["nodes_gen"], results["standard_splitting"]["nodes_exp"] = cbs.find_solution(False)
+
+    if paths is None:
+        raise BaseException('No solutions')
+
+    # Run with disjoint splitting
+    cbs = CBSSolver(my_map, starts, goals)
+    paths, results["disjoint_splitting"]["nodes_gen"], results["disjoint_splitting"]["nodes_exp"] = cbs.find_solution(True)
+
+    if paths is None:
+        raise BaseException('No solutions')
+    
+    if print_results:
+        # Print the result as a table. The columns should be num_exp and num_gen and the rows should be standard and disjoint
+        print("Method\tNodes Expanded\tNodes Generated")
+        print("Standard\t{}\t{}".format(results["standard_splitting"]["nodes_exp"], results["standard_splitting"]["nodes_gen"]))
+        print("Disjoint\t{}\t{}".format(results["disjoint_splitting"]["nodes_exp"], results["disjoint_splitting"]["nodes_gen"]))
+
+    return results
+
+def benchmark_all_instances(args):
+    '''
+    This function runs all instances through the solver without disjoing splitting and compares it to that with disjoint splitting.
+    It prints out the amount of nodes generated and expanded for both cases.
+
+    Parameters:
+        args: The arguments from the command line
+    '''
+
+    # Assert that the solver is CBS
+    if not args.hlsolver == "CBS":
+        raise Exception("Benchmarking only works with CBS")
+
+    # Set up the results dictionary
+    results = {}
+
+    # Iterate over files test_1.txt to test_57.txt
+    files = ["instances/test_{}.txt".format(i) for i in range(1, 58)]
+
+    for file in files:
+        try:
+            results[file] = benchmark_instance(file, args)
+        except BaseException as e:
+            print("Benchmark failed for file {}. Error: {}".format(file, e))
+
+    # Print the results
+    print("Results")
+    print("File\tMethod\tNodes Expanded\tNodes Generated")
+    for file in results:
+        for method in results[file]:
+            print("{}\t{}\t{}\t{}".format(file, method, results[file][method]["nodes_exp"], results[file][method]["nodes_gen"]))
     
 
 if __name__ == '__main__':
@@ -175,6 +251,10 @@ if __name__ == '__main__':
                         help='The solver to use (one of: {CBS,ICBS_CB,ICBS}), defaults to ' + str(HLSOLVER))
     parser.add_argument('--run_all_tests', action='store_true', default=False,
                         help='Run all tests in the instances folder. Used for checking completeness of the solvers.')
+    parser.add_argument('--benchmark_instance', action='store_true', default=False,
+                        help='Run a single instance through the solver without disjoint splitting and compare it to that with disjoint splitting.')
+    parser.add_argument('--benchmark_all_instances', action='store_true', default=False,
+                        help='Run all instances through the solver without disjoint splitting and compare it to that with disjoint splitting.')
     # parser.add_argument('--llsolver', type=str, default=LLSOLVER,
     #                     help='The solver to use (one of: {a_star,pea_star,epea_star}), defaults to ' + str(LLSOLVER))
     args = parser.parse_args()
@@ -182,6 +262,13 @@ if __name__ == '__main__':
     if args.run_all_tests:
         run_all_tests(args)
         exit()
+
+    if args.benchmark_instance:
+        benchmark_instance(args.instance, args, True)
+        exit()
+
+    if args.benchmark_all_instances:
+        benchmark_all_instances(args)
 
     result_file = open("results.csv", "w", buffering=1)
 
