@@ -178,7 +178,8 @@ def benchmark_instance(file, args, print_results=False):
     # Set up the results dictionary
     results = {
         "standard_splitting": {},
-        "disjoint_splitting": {}
+        "disjoint_splitting": {},
+        "tuvya_splitting": {}
     }
 
     # Load the instance
@@ -198,11 +199,19 @@ def benchmark_instance(file, args, print_results=False):
     if paths is None:
         raise BaseException('No solutions')
     
+    # Run with Tuvya splitting
+    cbs = CBSSolver(my_map, starts, goals)
+    paths, results["tuvya_splitting"]["nodes_gen"], results["tuvya_splitting"]["nodes_exp"] = cbs.find_solution(True)
+
+    if paths is None:
+        raise BaseException('No solutions')
+    
     if print_results:
         # Print the result as a table. The columns should be num_exp and num_gen and the rows should be standard and disjoint
         print("Method\tNodes Expanded\tNodes Generated")
         print("Standard\t{}\t{}".format(results["standard_splitting"]["nodes_exp"], results["standard_splitting"]["nodes_gen"]))
         print("Disjoint\t{}\t{}".format(results["disjoint_splitting"]["nodes_exp"], results["disjoint_splitting"]["nodes_gen"]))
+        print("Tuvya\t\t{}\t{}".format(results["tuvya_splitting"]["nodes_exp"], results["tuvya_splitting"]["nodes_gen"]))
 
     return results
 
@@ -223,7 +232,7 @@ def benchmark_all_instances(args):
     results = {}
 
     # Iterate over files test_1.txt to test_57.txt
-    files = ["instances/test_{}.txt".format(i) for i in range(1, 58)]
+    files = ["instances/test_{}.txt".format(i) for i in range(1, 10)]
 
     for file in files:
         try:
@@ -231,12 +240,20 @@ def benchmark_all_instances(args):
         except BaseException as e:
             print("Benchmark failed for file {}. Error: {}".format(file, e))
 
-    # Print the results
+    # Print the results in the following format:
+    # File, Standard Nodes Expanded, Standard Nodes Generated, Disjoint Nodes Expanded, Disjoint Nodes Generated, Tuvya Nodes Expanded, Tuvya Nodes Generated
+    # print("File, Standard Nodes Expanded, Standard Nodes Generated, Disjoint Nodes Expanded, Disjoint Nodes Generated, Tuvya Nodes Expanded, Tuvya Nodes Generated")
+    # for file in results:
+    #     print("{}, {}, {}, {}, {}, {}, {}".format(file, results[file]["standard_splitting"]["nodes_exp"], results[file]["standard_splitting"]["nodes_gen"], results[file]["disjoint_splitting"]["nodes_exp"], results[file]["disjoint_splitting"]["nodes_gen"], results[file]["tuvya_splitting"]["nodes_exp"], results[file]["tuvya_splitting"]["nodes_gen"]))
+
     print("Results")
     print("File\tMethod\tNodes Expanded\tNodes Generated")
     for file in results:
         for method in results[file]:
             print("{}\t{}\t{}\t{}".format(file, method, results[file][method]["nodes_exp"], results[file][method]["nodes_gen"]))
+
+    
+    
     
 
 if __name__ == '__main__':
@@ -247,6 +264,8 @@ if __name__ == '__main__':
                         help='Use batch output instead of animation')
     parser.add_argument('--disjoint', action='store_true', default=False,
                         help='Use the disjoint splitting')
+    parser.add_argument('--tuvya_splitting', action='store_true', default=False,
+                        help='Use Tuvya splitting')
     parser.add_argument('--hlsolver', type=str, default=HLSOLVER,
                         help='The solver to use (one of: {CBS,ICBS_CB,ICBS}), defaults to ' + str(HLSOLVER))
     parser.add_argument('--run_all_tests', action='store_true', default=False,
@@ -269,6 +288,7 @@ if __name__ == '__main__':
 
     if args.benchmark_all_instances:
         benchmark_all_instances(args)
+        exit()
 
     result_file = open("results.csv", "w", buffering=1)
 

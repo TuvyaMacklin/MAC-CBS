@@ -83,6 +83,15 @@ def standard_splitting(collision):
     return constraints
 
 def disjoint_splitting(collision):
+    '''
+    Create constraints based on a collision using disjoint splitting.
+
+    Parameters:
+        collision (dict): The collision to resolve.
+
+    Returns:
+        list: A list of constraints to resolve the collision.
+    '''
     ##############################
     # Task 4.1: Return a list of (two) constraints to resolve the given collision
     #           Vertex collision: the first constraint enforces one agent to be at the specified location at the
@@ -93,9 +102,13 @@ def disjoint_splitting(collision):
     #                          specified edge at the specified timestep
     #           Choose the agent randomly
     constraints = []
+
+    # Choose an agent randomly. (This code will assign either "a1" or "a2" to the variable "a")
     agent = random.randint(0,1)
-    a = 'a'+str(agent +1)
-    if len(collision['loc'])==1:
+    a = 'a' + str(agent + 1)
+
+    if len(collision['loc']) == 1: # If the length of the location is 1, it is a vertex collision
+
         constraints.append({'agent':collision[a],
                             'loc':collision['loc'],
                             'timestep':collision['timestep'],
@@ -106,8 +119,10 @@ def disjoint_splitting(collision):
                             'timestep':collision['timestep'],
                             'positive':False
                             })
-    else:
-        if agent ==0:
+        
+    else: # If the length of the location is more than 1, it is an edge collision.
+
+        if agent == 0:
             constraints.append({'agent':collision[a],
                                 'loc':[collision['loc'][0],collision['loc'][1]],
                                 'timestep':collision['timestep'],
@@ -118,6 +133,7 @@ def disjoint_splitting(collision):
                                 'timestep':collision['timestep'],
                                 'positive':False
                                 })
+            
         else:
             constraints.append({'agent':collision[a],
                                 'loc':[collision['loc'][1],collision['loc'][0]],
@@ -129,7 +145,92 @@ def disjoint_splitting(collision):
                                 'timestep':collision['timestep'],
                                 'positive':False
                                 })
+            
     return constraints
+
+def get_tuvya_splitting(num_agents) -> 'function':
+    '''
+    Returns a function that creates constraints based on a collision using Tuvya's splitting.
+
+    Parameters:
+        num_agents (int): The number of agents in the problem. This is needed information for Tuvya splitting.
+
+    Returns:
+        function: A function that creates constraints based on a collision using Tuvya's splitting.
+    '''
+
+    def tuvya_splitting(collision):
+        '''
+        Create constraints based on a collision using Tuvya's splitting.
+
+        Parameters:
+            collision (dict): The collision to resolve.
+
+        Returns:
+            list[list[dict]]: A list of two lists of constraints to resolve the collision.
+        '''
+
+        constraints = [[], []]
+
+        # Get the two agents involved in the collision
+        agent1 = collision['a1']
+        agent2 = collision['a2']
+
+        # Split the rest of the agents into two groups
+        all_other_agents = [i for i in range(num_agents) if i != agent1 and i != agent2]
+        random.shuffle(all_other_agents)
+        group1 = all_other_agents[:num_agents // 2]
+        group2 = all_other_agents[num_agents // 2:]
+
+        # Add agent1 and agent2 to the groups
+        group1.append(agent1)
+        group2.append(agent2)
+
+        # Create constraints
+        if len(collision['loc']) == 1: # aka vertex collision
+
+            # Add the constraints for group1
+            for agent in group1:
+                constraints[0].append({
+                    'agent': agent,
+                    'loc': collision['loc'],
+                    'timestep': collision['timestep'],
+                    'positive': False
+                })
+
+            # Add the constraints for group2
+            for agent in group2:
+                constraints[1].append({
+                    'agent': agent,
+                    'loc': collision['loc'],
+                    'timestep': collision['timestep'],
+                    'positive': False
+                })
+
+        else: # aka edge collision
+
+            # Add the constraints for group1
+            for agent in group1:
+                constraints[0].append({
+                    'agent': agent,
+                    'loc': [collision['loc'][0], collision['loc'][1]], # The location of the edge has two points
+                    'timestep': collision['timestep'],
+                    'positive': False
+                })
+
+            # Add the constraints for group2
+            for agent in group2:
+                constraints[1].append({
+                    'agent': agent,
+                    'loc': [collision['loc'][1], collision['loc'][0]], # The location of the edge has two points
+                    'timestep': collision['timestep'],
+                    'positive': False
+                })
+
+        return constraints
+
+    return tuvya_splitting
+
 
 def paths_violate_constraint(constraint, paths):
     assert constraint['positive'] is True
@@ -186,7 +287,7 @@ class CBSSolver(object):
         return node
 
 
-    def find_solution(self, disjoint, print_results=False):
+    def find_solution(self, disjoint, do_tuvya_splitting = False, print_results=False):
         """
         Finds paths for all agents from their start locations to their goal locations
 
@@ -203,6 +304,8 @@ class CBSSolver(object):
         
         if disjoint:
             splitter = disjoint_splitting
+        elif do_tuvya_splitting:
+            splitter = get_tuvya_splitting(self.num_of_agents)
         else:
             splitter = standard_splitting
 
