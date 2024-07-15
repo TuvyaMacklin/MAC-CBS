@@ -231,8 +231,11 @@ def benchmark_all_instances(args):
     # Set up the results dictionary
     results = {}
 
-    # Iterate over files test_1.txt to test_57.txt
-    files = ["instances/test_{}.txt".format(i) for i in range(1, 10)]
+    # Iterate over files test_1.txt to test_57.txt, unless the skip_advanced flag is set
+    last_instance = 57
+    if args.skip_advanced:
+        last_instance = 50
+    files = ["instances/test_{}.txt".format(i) for i in range(1, last_instance + 1)]
 
     for file in files:
         try:
@@ -249,12 +252,18 @@ def benchmark_all_instances(args):
     print("Results")
     print("File\tMethod\tNodes Expanded\tNodes Generated")
     for file in results:
-        for method in results[file]:
-            print("{}\t{}\t{}\t{}".format(file, method, results[file][method]["nodes_exp"], results[file][method]["nodes_gen"]))
+        # Add a line of dashes to separate the files
+        print("-" * 100)
 
-    
-    
-    
+        for method in results[file]:
+            
+            # If the method is tuvyasplitting, add an extra tab to align the columns
+            if method == "tuvya_splitting":
+                print("{}\t{}\t\t{}\t{}".format(file, method, results[file][method]["nodes_exp"], results[file][method]["nodes_gen"]))
+            else:
+                print("{}\t{}\t{}\t{}".format(file, method, results[file][method]["nodes_exp"], results[file][method]["nodes_gen"]))
+
+    return results
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Runs various MAPF algorithms')
@@ -274,6 +283,8 @@ if __name__ == '__main__':
                         help='Run a single instance through the solver without disjoint splitting and compare it to that with disjoint splitting.')
     parser.add_argument('--benchmark_all_instances', action='store_true', default=False,
                         help='Run all instances through the solver without disjoint splitting and compare it to that with disjoint splitting.')
+    parser.add_argument('--skip_advanced', action='store_true', default=False,
+                        help='Skip advanced tests when benchmarking on all instances.')
     # parser.add_argument('--llsolver', type=str, default=LLSOLVER,
     #                     help='The solver to use (one of: {a_star,pea_star,epea_star}), defaults to ' + str(LLSOLVER))
     args = parser.parse_args()
