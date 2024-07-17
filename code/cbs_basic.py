@@ -159,7 +159,7 @@ def get_tuvya_splitting(num_agents) -> 'function':
         function: A function that creates constraints based on a collision using Tuvya's splitting.
     '''
 
-    def tuvya_splitting(collision):
+    def tuvya_splitting(collision) -> 'list[list[dict]]':
         '''
         Create constraints based on a collision using Tuvya's splitting.
 
@@ -363,40 +363,78 @@ class CBSSolver(object):
             # constraints = disjoint_splitting(collision)
             constraints = splitter(collision)
 
-            for constraint in constraints:
-                q = {'cost':0,
-                    'constraints': [constraint],
-                    'paths':[],
-                    'collisions':[]
-                }
-                for c in p['constraints']:
-                    if c not in q['constraints']:
-                        q['constraints'].append(c)
-                for pa in p['paths']:
-                    q['paths'].append(pa)
+            if do_tuvya_splitting:
+                for constraint_set in constraints:
+                    # Set flag to skip node if a path is not found
+                    skip_node = False
 
-                ai = constraint['agent']
-                astar = AStar(self.my_map,self.starts, self.goals,self.heuristics,ai,q['constraints'])
-                path = astar.find_paths()
+                    # Create a new node with the constraint set
+                    q = {'cost': 0,
+                        'constraints': constraint_set,
+                        'paths': [],
+                        'collisions': []
+                    }
 
-                if path is not None:
-                    q['paths'][ai]= path[0]
-                    # task 4
-                    continue_flag = False
-                    if constraint['positive']:
-                        vol = paths_violate_constraint(constraint,q['paths'])
-                        for v in vol:
-                            astar_v = AStar(self.my_map,self.starts, self.goals,self.heuristics,v,q['constraints'])
-                            path_v = astar_v.find_paths()
-                            if path_v  is None:
-                                continue_flag =True
-                            else:
-                                q['paths'][v] = path_v[0]
-                        if continue_flag:
-                            continue
+                    # Copy the constraints and paths from the parent node
+                    for c in p['constraints']:
+                        if c not in q['constraints']:
+                            q['constraints'].append(c)
+                    for pa in p['paths']:
+                        q['paths'].append(pa)
+
+                    # For each agent, find a path
+                    for a in range(self.num_of_agents):
+                        astar = AStar(self.my_map, self.starts, self.goals, self.heuristics, a, q['constraints'])
+                        path = astar.find_paths()
+
+                        if path is None:
+                            break
+                        q['paths'][a] = path[0]
+
+                    # If a path is not found for an agent, skip the node
+                    if skip_node:
+                        continue
+
+                    # Check for collisions
                     q['collisions'] = detect_collisions(q['paths'])
                     q['cost'] = get_sum_of_cost(q['paths'])
-                    self.push_node(q)     
+                    self.push_node(q)
+
+            else:
+                for constraint in constraints:
+                    q = {'cost':0,
+                        'constraints': [constraint],
+                        'paths':[],
+                        'collisions':[]
+                    }
+                    for c in p['constraints']:
+                        if c not in q['constraints']:
+                            q['constraints'].append(c)
+                    for pa in p['paths']:
+                        q['paths'].append(pa)
+
+                    ai = constraint['agent']
+                    astar = AStar(self.my_map,self.starts, self.goals,self.heuristics,ai,q['constraints'])
+                    path = astar.find_paths()
+
+                    if path is not None:
+                        q['paths'][ai]= path[0]
+                        # task 4
+                        continue_flag = False
+                        if constraint['positive']:
+                            vol = paths_violate_constraint(constraint,q['paths'])
+                            for v in vol:
+                                astar_v = AStar(self.my_map,self.starts, self.goals,self.heuristics,v,q['constraints'])
+                                path_v = astar_v.find_paths()
+                                if path_v  is None:
+                                    continue_flag =True
+                                else:
+                                    q['paths'][v] = path_v[0]
+                            if continue_flag:
+                                continue
+                        q['collisions'] = detect_collisions(q['paths'])
+                        q['cost'] = get_sum_of_cost(q['paths'])
+                        self.push_node(q)     
         return None
 
     def print_results(self, node, show_paths = False):

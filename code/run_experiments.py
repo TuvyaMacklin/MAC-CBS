@@ -86,13 +86,17 @@ def run_all_tests(args):
     '''
 
     # Iterate over files test_1.txt to test_57.txt
-    files = ["instances/test_{}.txt".format(i) for i in range(1, 58)]
+    last_instance = 57
+    if args.skip_advanced:
+        last_instance = 50
+    files = ["instances/test_{}.txt".format(i) for i in range(1, last_instance + 1) if not (args.skip_47 and i == 47)]
 
     actual = get_actual_results("instances/min-sum-of-cost.csv")
 
     successes = 0
 
     for file in files:
+        print("Running test for file {}".format(file))
         try:
             if run_test(file, args, actual[file]):
                 successes += 1
@@ -146,7 +150,14 @@ def run_test(file, args, actual):
     else:
         raise RuntimeError("Unknown solver!")
     
-    paths, _, _ = cbs.find_solution(args.disjoint)
+    paths = None
+    if args.tuvya_splitting:
+        if not args.hlsolver == "CBS":
+            raise Exception("Tuvya splitting only works with CBS")
+        
+        paths, _, _ = cbs.find_solution(args.disjoint, True)
+    else:
+        paths, _, _ = cbs.find_solution(args.disjoint)
 
     if paths is None:
         raise BaseException('No solutions')
@@ -161,7 +172,7 @@ def run_test(file, args, actual):
         return False
     
 
-def benchmark_instance(file, args, print_results=False):
+def benchmark_instance(file, args, print_results=False, do_repeats = True):
     '''
     This function runs a single instance through the solver without disjoing splitting and compares it to that with disjoint splitting.
     It prints out the amount of nodes generated and expanded for both cases.
@@ -169,11 +180,59 @@ def benchmark_instance(file, args, print_results=False):
     Parameters:
         file: The name of the file to run
         args: The arguments from the command line
+
+    Returns:
+        A dictionary containing the results in the following format:
+        {
+            "standard_splitting": {
+                "nodes_exp": The number of nodes expanded with standard splitting,
+                "nodes_gen": The number of nodes generated with standard splitting
+            },
+            "disjoint_splitting": {
+                "nodes_exp": The number of nodes expanded with disjoint splitting,
+                "nodes_gen": The number of nodes generated with disjoint splitting
+            },
+            "tuvya_splitting": {
+                "nodes_exp": The number of nodes expanded with Tuvya splitting,
+                "nodes_gen": The number of nodes generated with Tuvya splitting
+            }
+        }
     '''
 
     # Assert that the solver is CBS
     if not args.hlsolver == "CBS":
         raise Exception("Benchmarking only works with CBS")
+    
+    # If the repeat parameter is set, repeat the experiment that many times
+    if args.repeats > 1 and do_repeats:
+        collected_results = []
+        for i in range(args.repeats):
+            collected_results.append(benchmark_instance(file, args, False, False))
+
+        # Calculate the average of the results
+        averaged_results = {
+            "standard_splitting": {
+                "nodes_exp": sum([result["standard_splitting"]["nodes_exp"] for result in collected_results]) / args.repeats,
+                "nodes_gen": sum([result["standard_splitting"]["nodes_gen"] for result in collected_results]) / args.repeats
+            },
+            "disjoint_splitting": {
+                "nodes_exp": sum([result["disjoint_splitting"]["nodes_exp"] for result in collected_results]) / args.repeats,
+                "nodes_gen": sum([result["disjoint_splitting"]["nodes_gen"] for result in collected_results]) / args.repeats
+            },
+            "tuvya_splitting": {
+                "nodes_exp": sum([result["tuvya_splitting"]["nodes_exp"] for result in collected_results]) / args.repeats,
+                "nodes_gen": sum([result["tuvya_splitting"]["nodes_gen"] for result in collected_results]) / args.repeats
+            }
+        }
+
+        if print_results:
+            # Print the result as a table. The columns should be num_exp and num_gen and the rows should be standard and disjoint
+            print("Method\tNodes Expanded\tNodes Generated")
+            print("Standard\t{}\t{}".format(averaged_results["standard_splitting"]["nodes_exp"], averaged_results["standard_splitting"]["nodes_gen"]))
+            print("Disjoint\t{}\t{}".format(averaged_results["disjoint_splitting"]["nodes_exp"], averaged_results["disjoint_splitting"]["nodes_gen"]))
+            print("Tuvya\t\t{}\t{}".format(averaged_results["tuvya_splitting"]["nodes_exp"], averaged_results["tuvya_splitting"]["nodes_gen"]))
+
+        return averaged_results
 
     # Set up the results dictionary
     results = {
@@ -186,11 +245,12 @@ def benchmark_instance(file, args, print_results=False):
     my_map, starts, goals = import_mapf_instance(file)
 
     # Run with standard splitting
-    cbs = CBSSolver(my_map, starts, goals)
-    paths, results["standard_splitting"]["nodes_gen"], results["standard_splitting"]["nodes_exp"] = cbs.find_solution(False)
+    if not args.skip_standard:
+        cbs = CBSSolver(my_map, starts, goals)
+        paths, results["standard_splitting"]["nodes_gen"], results["standard_splitting"]["nodes_exp"] = cbs.find_solution(False)
 
-    if paths is None:
-        raise BaseException('No solutions')
+        if paths is None:
+            raise BaseException('No solutions')
 
     # Run with disjoint splitting
     cbs = CBSSolver(my_map, starts, goals)
@@ -201,7 +261,7 @@ def benchmark_instance(file, args, print_results=False):
     
     # Run with Tuvya splitting
     cbs = CBSSolver(my_map, starts, goals)
-    paths, results["tuvya_splitting"]["nodes_gen"], results["tuvya_splitting"]["nodes_exp"] = cbs.find_solution(True)
+    paths, results["tuvya_splitting"]["nodes_gen"], results["tuvya_splitting"]["nodes_exp"] = cbs.find_solution(False, True)
 
     if paths is None:
         raise BaseException('No solutions')
@@ -209,7 +269,8 @@ def benchmark_instance(file, args, print_results=False):
     if print_results:
         # Print the result as a table. The columns should be num_exp and num_gen and the rows should be standard and disjoint
         print("Method\tNodes Expanded\tNodes Generated")
-        print("Standard\t{}\t{}".format(results["standard_splitting"]["nodes_exp"], results["standard_splitting"]["nodes_gen"]))
+        if not args.skip_standard:
+            print("Standard\t{}\t{}".format(results["standard_splitting"]["nodes_exp"], results["standard_splitting"]["nodes_gen"]))
         print("Disjoint\t{}\t{}".format(results["disjoint_splitting"]["nodes_exp"], results["disjoint_splitting"]["nodes_gen"]))
         print("Tuvya\t\t{}\t{}".format(results["tuvya_splitting"]["nodes_exp"], results["tuvya_splitting"]["nodes_gen"]))
 
@@ -235,7 +296,7 @@ def benchmark_all_instances(args):
     last_instance = 57
     if args.skip_advanced:
         last_instance = 50
-    files = ["instances/test_{}.txt".format(i) for i in range(1, last_instance + 1)]
+    files = ["instances/test_{}.txt".format(i) for i in range(1, last_instance + 1) if not (args.skip_47 and i == 47)]
 
     for file in files:
         try:
@@ -280,11 +341,18 @@ if __name__ == '__main__':
     parser.add_argument('--run_all_tests', action='store_true', default=False,
                         help='Run all tests in the instances folder. Used for checking completeness of the solvers.')
     parser.add_argument('--benchmark_instance', action='store_true', default=False,
-                        help='Run a single instance through the solver without disjoint splitting and compare it to that with disjoint splitting.')
+                        help='Run a single instance through the solver without disjoint splitting and compare it to that with disjoint splitting and Tuvya splitting.')
     parser.add_argument('--benchmark_all_instances', action='store_true', default=False,
-                        help='Run all instances through the solver without disjoint splitting and compare it to that with disjoint splitting.')
+                        help='Run all instances through the solver without disjoint splitting and compare it to that with disjoint splitting and Tuvya splitting.')
     parser.add_argument('--skip_advanced', action='store_true', default=False,
                         help='Skip advanced tests when benchmarking on all instances.')
+    parser.add_argument('--skip_47', action='store_true', default=False,
+                        help='Skip test 47 when benchmarking on all instances.')
+    parser.add_argument('--repeats', type=int, default=1,
+                        help='The number of times to repeat the experiment when benchmarking')
+    parser.add_argument('--skip_standard', action='store_true', default=False,
+                        help='Skip the standard splitting method when benchmarking.')
+    
     # parser.add_argument('--llsolver', type=str, default=LLSOLVER,
     #                     help='The solver to use (one of: {a_star,pea_star,epea_star}), defaults to ' + str(LLSOLVER))
     args = parser.parse_args()
@@ -369,9 +437,19 @@ if __name__ == '__main__':
         else:
             raise RuntimeError("Unknown solver!")
 
+        
 
+        solution = None
 
-        solution = cbs.find_solution(args.disjoint, print_results=True)
+        if args.tuvya_splitting:
+            # If tuvya splitting is being used, assert that the solver is CBS
+            if not args.hlsolver == "CBS":
+                raise Exception("Tuvya splitting only works with CBS")
+            
+            solution = cbs.find_solution(args.disjoint, print_results=True, do_tuvya_splitting=True)
+
+        else:
+            solution = cbs.find_solution(args.disjoint, print_results=True)
 
         if solution is not None:
             # print(solution)
