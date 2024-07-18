@@ -96,14 +96,14 @@ def run_all_tests(args):
     successes = 0
 
     for file in files:
-        print("Running test for file {}".format(file))
         try:
             if run_test(file, args, actual[file]):
                 successes += 1
         except BaseException as e:
             print("Test failed for file {}. Error: {}".format(file, e))
 
-    print("Tests passed: {}/57".format(successes))
+    expected_successes = len(files)
+    print("Tests passed: {}/{}".format(successes, expected_successes))
 
 def get_actual_results(filename):
     '''
@@ -116,12 +116,13 @@ def get_actual_results(filename):
         A dictionary mapping the filename to the sum of costs
     '''
 
+    # Read the file that contains the actual results
     f = open(filename, 'r')
     lines = f.readlines()
     f.close()
 
+    # Parse the lines and store the results in a dictionary
     actual = {}
-
     for line in lines:
         parts = line.split(',')
         actual[parts[0]] = int(parts[1])
