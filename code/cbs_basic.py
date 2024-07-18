@@ -253,16 +253,20 @@ def paths_violate_constraint(constraint, paths):
 class CBSSolver(object):
     """The high-level search of CBS."""
 
-    def __init__(self, my_map, starts, goals):
-        """my_map   - list of lists specifying obstacle positions
+    def __init__(self, my_map, starts, goals, timeout = None):
+        """
+        my_map   - list of lists specifying obstacle positions
         starts      - [(x1, y1), (x2, y2), ...] list of start locations
         goals       - [(x1, y1), (x2, y2), ...] list of goal locations
+        timeout     - timeout for the algorithm counted in seconds
         """
 
         self.my_map = my_map
         self.starts = starts
         self.goals = goals
         self.num_of_agents = len(goals)
+
+        self.timeout = timeout
 
         self.num_of_generated = 0
         self.num_of_expanded = 0
@@ -346,8 +350,13 @@ class CBSSolver(object):
         #             3. Otherwise, choose the first collision and convert to a list of constraints (using your
         #                standard_splitting function). Add a new child node to your open list for each constraint
         #           Ensure to create a copy of any objects that your child nodes might inherit
-        
+
         while len(self.open_list) > 0:
+            # Check if the timeout has been reached
+            if self.timeout_reached():
+                print('Timeout reached. Returning...')
+                return None
+
             # if self.num_of_generated > 50000:
             #     print('reached maximum number of nodes. Returning...')
             #     return None
@@ -436,6 +445,18 @@ class CBSSolver(object):
                         q['cost'] = get_sum_of_cost(q['paths'])
                         self.push_node(q)     
         return None
+    
+    def timeout_reached(self):
+        '''
+        Check if the timeout has been reached.
+        '''
+        # Check if the timeout has been set
+        if self.timeout is None:
+            return False
+        
+        time_elapsed = timer.time() - self.start_time
+        if time_elapsed > self.timeout:
+            return True
 
     def print_results(self, node, show_paths = False):
         print("\n Found a solution! \n")

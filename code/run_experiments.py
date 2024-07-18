@@ -145,7 +145,7 @@ def run_test(file, args, actual):
     my_map, starts, goals = import_mapf_instance(file)
 
     if args.hlsolver == "CBS":
-        cbs = CBSSolver(my_map, starts, goals)
+        cbs = CBSSolver(my_map, starts, goals, timeout = args.timeout)
     elif args.hlsolver == "ICBS":
         cbs = ICBS_Solver(my_map, starts, goals)
     else:
@@ -247,21 +247,21 @@ def benchmark_instance(file, args, print_results=False, do_repeats = True):
 
     # Run with standard splitting
     if not args.skip_standard:
-        cbs = CBSSolver(my_map, starts, goals)
+        cbs = CBSSolver(my_map, starts, goals, timeout = args.timeout)
         paths, results["standard_splitting"]["nodes_gen"], results["standard_splitting"]["nodes_exp"] = cbs.find_solution(False)
 
         if paths is None:
             raise BaseException('No solutions')
 
     # Run with disjoint splitting
-    cbs = CBSSolver(my_map, starts, goals)
+    cbs = CBSSolver(my_map, starts, goals, timeout = args.timeout)
     paths, results["disjoint_splitting"]["nodes_gen"], results["disjoint_splitting"]["nodes_exp"] = cbs.find_solution(True)
 
     if paths is None:
         raise BaseException('No solutions')
     
     # Run with Tuvya splitting
-    cbs = CBSSolver(my_map, starts, goals)
+    cbs = CBSSolver(my_map, starts, goals, timeout = args.timeout)
     paths, results["tuvya_splitting"]["nodes_gen"], results["tuvya_splitting"]["nodes_exp"] = cbs.find_solution(False, True)
 
     if paths is None:
@@ -353,11 +353,21 @@ if __name__ == '__main__':
                         help='The number of times to repeat the experiment when benchmarking')
     parser.add_argument('--skip_standard', action='store_true', default=False,
                         help='Skip the standard splitting method when benchmarking.')
+    parser.add_argument('--timeout', '-t', type=int, default=None,
+                        help='The timeout for the solvers in seconds. Currently only implemented for CBS.')
     
     # parser.add_argument('--llsolver', type=str, default=LLSOLVER,
     #                     help='The solver to use (one of: {a_star,pea_star,epea_star}), defaults to ' + str(LLSOLVER))
     args = parser.parse_args()
 
+    # Assert that if the timeout is set, that the solver is CBS
+    if args.timeout is not None and not args.hlsolver == "CBS":
+        raise Exception("Timeouts only work with CBS")
+    
+    # Assert that if tuvya splitting is set, that the solver is CBS
+    if args.tuvya_splitting and not args.hlsolver == "CBS":
+        raise Exception("Tuvya splitting only works with CBS")
+    
     if args.run_all_tests:
         run_all_tests(args)
         exit()
@@ -379,7 +389,6 @@ if __name__ == '__main__':
 
 
     if args.batch:
-        
         input_instance = sorted(glob.glob("instances/test*"))
     else:
         input_instance = sorted(glob.glob(args.instance))
@@ -395,7 +404,7 @@ if __name__ == '__main__':
 
         if args.hlsolver == "CBS":
             print("***Run CBS***")
-            cbs = CBSSolver(my_map, starts, goals)
+            cbs = CBSSolver(my_map, starts, goals, timeout = args.timeout)
             # solution = cbs.find_solution(args.disjoint)
 
             # if solution is not None:
@@ -443,12 +452,7 @@ if __name__ == '__main__':
         solution = None
 
         if args.tuvya_splitting:
-            # If tuvya splitting is being used, assert that the solver is CBS
-            if not args.hlsolver == "CBS":
-                raise Exception("Tuvya splitting only works with CBS")
-            
             solution = cbs.find_solution(args.disjoint, print_results=True, do_tuvya_splitting=True)
-
         else:
             solution = cbs.find_solution(args.disjoint, print_results=True)
 
