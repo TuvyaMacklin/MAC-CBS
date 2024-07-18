@@ -125,7 +125,7 @@ def generate_empty_instances():
     for num_agents in amounts_of_agents:
         for i in range(num_of_source_files):
             scen_file = f'instances/atzmon_benchmark/source/empty-8-8-random-{i + 1}.scen'
-            output_name = f'instances/atzmon_benchmark/empty/{i + 1}-{num_agents}-agents.txt'
+            output_name = f'instances/atzmon_benchmark/empty-grid/{i + 1}-{num_agents}-agents.txt'
             generate_benchmarks(scen_file, output_name, num_agents)
 
 if __name__ == "__main__":
