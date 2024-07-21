@@ -43,6 +43,19 @@ def print_locations(my_map, locations):
 
 
 def import_mapf_instance(filename):
+    '''
+    This function imports a MAPF instance from a file.
+
+    Parameters:
+        filename: The name of the file to import
+
+    Returns:
+        A tuple containing the following elements:
+        - my_map: A 2D array representing the map
+        - starts: A list of tuples representing the start locations of the agents
+        - goals: A list of tuples representing the goal locations of the agents
+    '''
+
     f = Path(filename)
     if not f.is_file():
         raise BaseException(filename + " does not exist.")
