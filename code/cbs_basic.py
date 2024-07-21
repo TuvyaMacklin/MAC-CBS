@@ -268,6 +268,10 @@ class CBSSolver(object):
 
         self.timeout = timeout
 
+        # Variables to track the low-level search
+        self.ll_num_of_generated = 0
+        self.ll_num_of_expanded = 0
+
         self.num_of_generated = 0
         self.num_of_expanded = 0
         self.CPU_time = 0
@@ -291,7 +295,7 @@ class CBSSolver(object):
         return node
 
 
-    def find_solution(self, disjoint, do_tuvya_splitting = False, print_results=False):
+    def find_solution(self, disjoint, do_tuvya_splitting = False, print_results=False) -> tuple[list, int, int]:
         """
         Finds paths for all agents from their start locations to their goal locations
 
@@ -396,6 +400,10 @@ class CBSSolver(object):
                         astar = AStar(self.my_map, self.starts, self.goals, self.heuristics, a, q['constraints'])
                         path = astar.find_paths()
 
+                        # Adjust the metrics for tracking the low-level search
+                        self.ll_num_of_generated += astar.num_expanded
+                        self.ll_num_of_expanded += astar.num_generated
+
                         if path is None:
                             break
                         q['paths'][a] = path[0]
@@ -426,6 +434,10 @@ class CBSSolver(object):
                     astar = AStar(self.my_map,self.starts, self.goals,self.heuristics,ai,q['constraints'])
                     path = astar.find_paths()
 
+                    # Adjust the metrics for tracking the low-level search
+                    self.ll_num_of_generated += astar.num_expanded
+                    self.ll_num_of_expanded += astar.num_generated
+
                     if path is not None:
                         q['paths'][ai]= path[0]
                         # task 4
@@ -435,6 +447,11 @@ class CBSSolver(object):
                             for v in vol:
                                 astar_v = AStar(self.my_map,self.starts, self.goals,self.heuristics,v,q['constraints'])
                                 path_v = astar_v.find_paths()
+
+                                # Adjust the metrics for tracking the low-level search
+                                self.ll_num_of_generated += astar_v.num_expanded
+                                self.ll_num_of_expanded += astar_v.num_generated
+
                                 if path_v  is None:
                                     continue_flag =True
                                 else:
