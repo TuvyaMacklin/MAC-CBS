@@ -134,7 +134,7 @@ def benchmark_algorithm_on_instance(file, splitting_strategy, timeout=60):
             'HL Nodes generated': cbs.num_of_generated,
             'LL Nodes expanded': cbs.ll_num_of_expanded,
             'LL Nodes generated': cbs.ll_num_of_generated,
-            'Total runtime': timeout,
+            'Total runtime': "Timeout",
             'Solution cost': None,
             'Timeout': True
         }
