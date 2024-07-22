@@ -340,6 +340,10 @@ class CBSSolver(object):
                 raise BaseException('No solutions')
             root['paths'].append(path[0])
 
+            # Adjust the metrics for tracking the low-level search
+            self.ll_num_of_generated += astar.num_expanded
+            self.ll_num_of_expanded += astar.num_generated
+
         root['cost'] = get_sum_of_cost(root['paths'])
         root['collisions'] = detect_collisions(root['paths'])
         self.push_node(root)
