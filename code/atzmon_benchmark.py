@@ -110,6 +110,9 @@ def benchmark_algorithm_on_instance(file, splitting_strategy, timeout=60):
         The metrics for the instance.
     '''
 
+    # Print the instance being run
+    print(f'Running instance: {file}')
+
     # Import the instance
     map, starts, goals = import_mapf_instance(file)
 
@@ -130,6 +133,7 @@ def benchmark_algorithm_on_instance(file, splitting_strategy, timeout=60):
     if result is None:
         metrics = {
             'File': file,
+            'Splitting strategy': splitting_strategy,
             'HL Nodes expanded': cbs.num_of_expanded,
             'HL Nodes generated': cbs.num_of_generated,
             'LL Nodes expanded': cbs.ll_num_of_expanded,
@@ -146,6 +150,7 @@ def benchmark_algorithm_on_instance(file, splitting_strategy, timeout=60):
     # Collect the metrics
     metrics = {
         'File': file,
+        'Splitting strategy': splitting_strategy,
         'HL Nodes expanded': cbs.num_of_expanded,
         'HL Nodes generated': cbs.num_of_generated,
         'LL Nodes expanded': cbs.ll_num_of_expanded,
@@ -186,12 +191,41 @@ def log_metrics(metrics, output_directory):
     # Write the metrics to the file
     with open(filename, 'w') as f:
         # First write the header
-        header = 'File,HL Nodes expanded,HL Nodes generated,LL Nodes expanded,LL Nodes generated,Total runtime,Solution cost\n'
+        header = 'File,Splitting strategy,HL Nodes expanded,HL Nodes generated,LL Nodes expanded,LL Nodes generated,Total runtime,Solution cost\n'
         f.write(header)
 
         # Write the metrics
         for metric in metrics:
-            f.write(f'{metric["File"]},{metric["HL Nodes expanded"]},{metric["HL Nodes generated"]},{metric["LL Nodes expanded"]},{metric["LL Nodes generated"]},{metric["Total runtime"]},{metric["Solution cost"]}\n')
+            file = metric['File']
+            splitting_strategy = metric['Splitting strategy']
+            hl_nodes_expanded = metric['HL Nodes expanded']
+            hl_nodes_generated = metric['HL Nodes generated']
+            ll_nodes_expanded = metric['LL Nodes expanded']
+            ll_nodes_generated = metric['LL Nodes generated']
+            total_runtime = metric['Total runtime']
+            solution_cost = metric['Solution cost']
+
+            if metric['Timeout']:
+                f.write(f'{file},{splitting_strategy},{hl_nodes_expanded},{hl_nodes_generated},{ll_nodes_expanded},{ll_nodes_generated},{total_runtime},Timeout\n')
+            else:
+                f.write(f'{file},{splitting_strategy},{hl_nodes_expanded},{hl_nodes_generated},{ll_nodes_expanded},{ll_nodes_generated},{total_runtime},{solution_cost}\n')
+
+def run_full_benchmark():
+    '''
+    Run the full benchmark specified by Dr. Atzmon. This function will run the benchmark on both empty and 10-percent instances with every splitting strategy.
+
+    Returns
+    -------
+    None
+    '''
+
+    # Run the benchmark on empty instances
+    # empty_args = argparse.Namespace(splitting_strategy='standard', instance_type='empty', output_directory='atzmon_benchmark_results', timeout=1)
+    # do_benchmark(empty_args)
+
+    # Run the benchmark on 10-percent instances
+    ten_percent_args = argparse.Namespace(splitting_strategy='standard', instance_type='10-percent', output_directory='atzmon_benchmark_results', timeout=1)
+    do_benchmark(ten_percent_args)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run the Atzmon benchmark.')
@@ -200,7 +234,12 @@ if __name__ == '__main__':
     parser.add_argument('--instance_type', type=str, default="empty", help='The type of instances to use. Can be "empty" or "10-percent". Default is "empty".')
     parser.add_argument('--output_directory', '-o', type=str, default='atzmon_benchmark_results', help='The directory to save the output to. Default is "atzmon_benchmark_results".')
     parser.add_argument('--timeout', '-t', type=int, default=60, help='The timeout for each instance in seconds. Default is 60 seconds.')
+    parser.add_argument('--run_full_benchmark', action='store_true', help='Run the full benchmark specified by Dr. Atzmon. This will run the benchmark on both empty and 10-percent instances with every splitting strategy.')
 
     args = parser.parse_args()
+
+    if args.run_full_benchmark:
+        run_full_benchmark()
+        exit()
 
     do_benchmark(args)
