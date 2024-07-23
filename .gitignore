@@ -2,3 +2,4 @@ code/__pycache__/*
 code/*.txt
 code/results.csv
 .venv
+atzmon_benchmark_results
