@@ -110,9 +110,6 @@ def benchmark_algorithm_on_instance(file, splitting_strategy, timeout=60):
         The metrics for the instance.
     '''
 
-    # Print the instance being run
-    print(f'Running instance: {file}')
-
     # Import the instance
     map, starts, goals = import_mapf_instance(file)
 
@@ -219,13 +216,53 @@ def run_full_benchmark():
     None
     '''
 
-    # Run the benchmark on empty instances
-    # empty_args = argparse.Namespace(splitting_strategy='standard', instance_type='empty', output_directory='atzmon_benchmark_results', timeout=1)
-    # do_benchmark(empty_args)
+    # # Run the benchmark on the standard splitting strategy
+    # run_benchmark_with_these_args('standard', 'empty', 'atzmon_benchmark_results', 60)
+    # run_benchmark_with_these_args('standard', '10-percent', 'atzmon_benchmark_results', 60)
 
-    # Run the benchmark on 10-percent instances
-    ten_percent_args = argparse.Namespace(splitting_strategy='standard', instance_type='10-percent', output_directory='atzmon_benchmark_results', timeout=1)
-    do_benchmark(ten_percent_args)
+    # # Run the benchmark on the disjoint splitting strategy
+    # run_benchmark_with_these_args('disjoint', 'empty', 'atzmon_benchmark_results', 60)
+    # run_benchmark_with_these_args('disjoint', '10-percent', 'atzmon_benchmark_results', 60)
+
+    # # Run the benchmark on the tuvya splitting strategy
+    # run_benchmark_with_these_args('tuvya_splitting', 'empty', 'atzmon_benchmark_results', 60)
+    # run_benchmark_with_these_args('tuvya_splitting', '10-percent', 'atzmon_benchmark_results', 60)
+
+    # Run the benchmark on the standard splitting strategy
+    run_benchmark_with_these_args('standard', 'empty', 'atzmon_benchmark_results', 1)
+    run_benchmark_with_these_args('standard', '10-percent', 'atzmon_benchmark_results', 1)
+
+    # Run the benchmark on the disjoint splitting strategy
+    run_benchmark_with_these_args('disjoint', 'empty', 'atzmon_benchmark_results', 1)
+    run_benchmark_with_these_args('disjoint', '10-percent', 'atzmon_benchmark_results', 1)
+
+    # Run the benchmark on the tuvya splitting strategy
+    run_benchmark_with_these_args('tuvya_splitting', 'empty', 'atzmon_benchmark_results', 1)
+    run_benchmark_with_these_args('tuvya_splitting', '10-percent', 'atzmon_benchmark_results', 1)
+
+def run_benchmark_with_these_args(splitting_strategy, instance_type, output_directory, timeout):
+    '''
+    Run the benchmark with the given arguments. This method allows you to run the benchmark with the given arguments
+    from a script or another function without having to use the command line.
+
+    Parameters
+    ----------
+    splitting_strategy : str
+        The splitting strategy to use. Can be "standard", "disjoint", or "tuvya_splitting".
+    instance_type : str
+        The type of instances to use. Can be "empty" or "10-percent".
+    output_directory : str
+        The directory to save the output to.
+    timeout : int
+        The timeout for each instance in seconds.
+
+    Returns
+    -------
+    None
+    '''
+
+    args = argparse.Namespace(splitting_strategy=splitting_strategy, instance_type=instance_type, output_directory=output_directory, timeout=timeout)
+    do_benchmark(args)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run the Atzmon benchmark.')
