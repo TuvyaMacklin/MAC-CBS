@@ -32,6 +32,8 @@ from run_experiments import import_mapf_instance
 from cbs_basic import CBSSolver
 from single_agent_planner import get_sum_of_cost
 
+from tqdm import tqdm
+
 def do_benchmark(args):
     '''
     Run the benchmark specified by Dr. Atzmon. Saves the output to a file.
@@ -51,7 +53,7 @@ def do_benchmark(args):
 
     # Run each file through the algorithm specified, and track the metrics
     metrics = []
-    for file in files:
+    for file in tqdm(files):
         instance_metrics = benchmark_algorithm_on_instance(file, args.splitting_strategy, timeout=args.timeout)
         metrics.append(instance_metrics)
 
@@ -216,29 +218,26 @@ def run_full_benchmark():
     None
     '''
 
-    # # Run the benchmark on the standard splitting strategy
-    # run_benchmark_with_these_args('standard', 'empty', 'atzmon_benchmark_results', 60)
-    # run_benchmark_with_these_args('standard', '10-percent', 'atzmon_benchmark_results', 60)
-
-    # # Run the benchmark on the disjoint splitting strategy
-    # run_benchmark_with_these_args('disjoint', 'empty', 'atzmon_benchmark_results', 60)
-    # run_benchmark_with_these_args('disjoint', '10-percent', 'atzmon_benchmark_results', 60)
-
-    # # Run the benchmark on the tuvya splitting strategy
-    # run_benchmark_with_these_args('tuvya_splitting', 'empty', 'atzmon_benchmark_results', 60)
-    # run_benchmark_with_these_args('tuvya_splitting', '10-percent', 'atzmon_benchmark_results', 60)
-
     # Run the benchmark on the standard splitting strategy
-    run_benchmark_with_these_args('standard', 'empty', 'atzmon_benchmark_results', 1)
-    run_benchmark_with_these_args('standard', '10-percent', 'atzmon_benchmark_results', 1)
+    print('Running the benchmark on empty instances with the standard splitting strategy. This may take a while...')
+    run_benchmark_with_these_args('standard', 'empty', 'atzmon_benchmark_results', 60)
+    print('Finished running the benchmark on empty instances with the standard splitting strategy.')
+    run_benchmark_with_these_args('standard', '10-percent', 'atzmon_benchmark_results', 60)
+    print('Finished running the benchmark on 10-percent instances with the standard splitting strategy.')
 
     # Run the benchmark on the disjoint splitting strategy
-    run_benchmark_with_these_args('disjoint', 'empty', 'atzmon_benchmark_results', 1)
-    run_benchmark_with_these_args('disjoint', '10-percent', 'atzmon_benchmark_results', 1)
+    print('Running the benchmark on empty instances with the disjoint splitting strategy. This may take a while...')
+    run_benchmark_with_these_args('disjoint', 'empty', 'atzmon_benchmark_results', 60)
+    print('Finished running the benchmark on empty instances with the disjoint splitting strategy.')
+    run_benchmark_with_these_args('disjoint', '10-percent', 'atzmon_benchmark_results', 60)
+    print('Finished running the benchmark on 10-percent instances with the disjoint splitting strategy.')
 
     # Run the benchmark on the tuvya splitting strategy
-    run_benchmark_with_these_args('tuvya_splitting', 'empty', 'atzmon_benchmark_results', 1)
-    run_benchmark_with_these_args('tuvya_splitting', '10-percent', 'atzmon_benchmark_results', 1)
+    print('Running the benchmark on empty instances with the tuvya splitting strategy. This may take a while...')
+    run_benchmark_with_these_args('tuvya_splitting', 'empty', 'atzmon_benchmark_results', 60)
+    print('Finished running the benchmark on empty instances with the tuvya splitting strategy.')
+    run_benchmark_with_these_args('tuvya_splitting', '10-percent', 'atzmon_benchmark_results', 60)
+    print('Finished running the benchmark on 10-percent instances with the tuvya splitting strategy.')
 
 def run_benchmark_with_these_args(splitting_strategy, instance_type, output_directory, timeout):
     '''

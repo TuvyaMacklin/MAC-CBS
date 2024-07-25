@@ -362,7 +362,7 @@ class CBSSolver(object):
         while len(self.open_list) > 0:
             # Check if the timeout has been reached
             if self.timeout_reached():
-                print('Timeout reached. Returning...')
+                #print('Timeout reached. Returning...')
                 return None
 
             # if self.num_of_generated > 50000:
