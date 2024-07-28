@@ -148,18 +148,20 @@ def disjoint_splitting(collision):
             
     return constraints
 
-def get_tuvya_splitting(num_agents) -> 'function':
+def get_tuvya_splitting(num_agents, balanced = True):
     '''
     Returns a function that creates constraints based on a collision using Tuvya's splitting.
 
     Parameters:
         num_agents (int): The number of agents in the problem. This is needed information for Tuvya splitting.
+        balanced (bool): Whether to split the agents into two groups of equal size or not. If not,
+        then one group will only have one agent and the other group will have the rest of the agents. Default is True.
 
     Returns:
         function: A function that creates constraints based on a collision using Tuvya's splitting.
     '''
 
-    def tuvya_splitting(collision) -> 'list[list[dict]]':
+    def tuvya_splitting(collision):
         '''
         Create constraints based on a collision using Tuvya's splitting.
 
@@ -167,7 +169,7 @@ def get_tuvya_splitting(num_agents) -> 'function':
             collision (dict): The collision to resolve.
 
         Returns:
-            list[list[dict]]: A list of two lists of constraints to resolve the collision.
+            list[dict], list[dict]: Two lists of constraints to resolve the collision.
         '''
 
         constraints = [[], []]
@@ -176,15 +178,12 @@ def get_tuvya_splitting(num_agents) -> 'function':
         agent1 = collision['a1']
         agent2 = collision['a2']
 
-        # Split the rest of the agents into two groups
-        all_other_agents = [i for i in range(num_agents) if i != agent1 and i != agent2]
-        random.shuffle(all_other_agents)
-        group1 = all_other_agents[:num_agents // 2]
-        group2 = all_other_agents[num_agents // 2:]
+        # Divide the agents into two groups
+        group1, group2 = divide_agents(agent1, agent2, num_agents, balanced)
 
-        # Add agent1 and agent2 to the groups
-        group1.append(agent1)
-        group2.append(agent2)
+        # Print the groups of agents
+        # print('Group 1:', group1)
+        # print('Group 2:', group2)
 
         # Create constraints
         if len(collision['loc']) == 1: # aka vertex collision
@@ -230,6 +229,45 @@ def get_tuvya_splitting(num_agents) -> 'function':
         return constraints
 
     return tuvya_splitting
+
+def divide_agents(a1, a2, num_agents, balanced=True):
+    '''
+    Divides the agents into two groups for Tuvya splitting.
+
+    Parameters:
+        a1 (int): The first agent involved in the collision.
+        a2 (int): The second agent involved in the collision.
+        num_agents (int): The total number of agents.
+        balanced (bool): Whether to split the agents into two groups of equal size or not. Default is True.
+
+    Returns:
+        list[int], list[int]: Two lists of agents.
+
+    Note:
+        If balanced is set to False, one group will only have one agent and the other group will have the rest of the agents.
+    '''
+
+    if balanced:
+        # Split the rest of the agents into two groups
+        all_other_agents = [i for i in range(num_agents) if i != a1 and i != a2]
+        random.shuffle(all_other_agents)
+        group1 = all_other_agents[:num_agents // 2]
+        group2 = all_other_agents[num_agents // 2:]
+
+        # Add agent1 and agent2 to the groups
+        group1.append(a1)
+        group2.append(a2)
+
+        return group1, group2
+    
+    else:
+        # Choose one agent randomly to be alone and the rest will be in the other group
+        lone_agent = random.choice([a1, a2])
+
+        # Split the rest of the agents into two groups
+        other_agents = [i for i in range(num_agents) if i != lone_agent]
+
+        return [lone_agent], other_agents
 
 
 def paths_violate_constraint(constraint, paths):
@@ -295,17 +333,20 @@ class CBSSolver(object):
         return node
 
 
-    def find_solution(self, disjoint, do_tuvya_splitting = False, print_results=False) -> tuple[list, int, int]:
+    def find_solution(self, disjoint, do_tuvya_splitting = False, balanced_tuvya_splitting = True, print_results=False) -> tuple[list, int, int]:
         """
         Finds paths for all agents from their start locations to their goal locations
 
         Parameters:
-            disjoint - boolean value indicating whether to use disjoint splitting or not
+            disjoint (bool): Whether to use disjoint splitting or not
+            do_tuvya_splitting (bool): Whether to use Tuvya's splitting or not
+            balanced_tuvya_splitting (bool): Whether to split the agents into two groups of equal size or not. Default is True.
+            print_results (bool): Whether to print the results or not. Default is False.
 
         Returns:
-            - paths - list of paths, one for each agent, that satisfies all constraints
-            - num_of_generated - number of nodes generated
-            - num_of_expanded - number of nodes expanded 
+            paths (list): A list of paths for all agents from their start locations to their goal locations.
+            num_of_generated (int): The number of nodes generated.
+            num_of_expanded (int): The number of nodes expanded.
         """
 
         self.start_time = timer.time()
@@ -313,7 +354,7 @@ class CBSSolver(object):
         if disjoint:
             splitter = disjoint_splitting
         elif do_tuvya_splitting:
-            splitter = get_tuvya_splitting(self.num_of_agents)
+            splitter = get_tuvya_splitting(self.num_of_agents, balanced_tuvya_splitting)
         else:
             splitter = standard_splitting
 

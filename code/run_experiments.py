@@ -109,6 +109,8 @@ def run_all_tests(args):
     successes = 0
 
     for file in files:
+        # print("Running test for file {}".format(file))
+
         try:
             if run_test(file, args, actual[file]):
                 successes += 1
@@ -169,7 +171,7 @@ def run_test(file, args, actual):
         if not args.hlsolver == "CBS":
             raise Exception("Tuvya splitting only works with CBS")
         
-        paths, _, _ = cbs.find_solution(args.disjoint, True)
+        paths, _, _ = cbs.find_solution(args.disjoint, True, balanced_tuvya_splitting= not args.imbalanced_tuvya_splitting)
     else:
         paths, _, _ = cbs.find_solution(args.disjoint)
 
@@ -368,6 +370,8 @@ if __name__ == '__main__':
                         help='Skip the standard splitting method when benchmarking.')
     parser.add_argument('--timeout', '-t', type=int, default=None,
                         help='The timeout for the solvers in seconds. Currently only implemented for CBS.')
+    parser.add_argument('--imbalanced_tuvya_splitting', '-its', action='store_true', default=False,
+                        help='Use the imbalanced Tuvya splitting')
     
     # parser.add_argument('--llsolver', type=str, default=LLSOLVER,
     #                     help='The solver to use (one of: {a_star,pea_star,epea_star}), defaults to ' + str(LLSOLVER))
@@ -465,7 +469,7 @@ if __name__ == '__main__':
         solution = None
 
         if args.tuvya_splitting:
-            solution = cbs.find_solution(args.disjoint, print_results=True, do_tuvya_splitting=True)
+            solution = cbs.find_solution(args.disjoint, print_results=True, do_tuvya_splitting=True, balanced_tuvya_splitting= not args.imbalanced_tuvya_splitting)
         else:
             solution = cbs.find_solution(args.disjoint, print_results=True)
 
