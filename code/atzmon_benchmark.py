@@ -67,7 +67,7 @@ def get_benchmark_files(instance_type):
     Parameters
     ----------
     instance_type : str
-        The type of instances to use. Can be "empty" or "10-percent".
+        The type of instances to use. Can be "empty", "10-percent", or "all".
 
     Returns
     -------
@@ -75,8 +75,11 @@ def get_benchmark_files(instance_type):
         The files to run the benchmark on.
     '''
 
-    if not instance_type in ['empty', '10-percent']:
-        raise ValueError('Invalid instance type. Must be "empty" or "10-percent".')
+    if not instance_type in ['empty', '10-percent', 'all']:
+        raise ValueError('Invalid instance type. Must be "empty", "10-percent", or "all".')
+    
+    if instance_type == 'all':
+        return get_benchmark_files('empty') + get_benchmark_files('10-percent')
     
     if instance_type == 'empty':
         instance_type = 'empty-grid'
@@ -118,14 +121,17 @@ def benchmark_algorithm_on_instance(file, splitting_strategy, timeout=60):
     # Run the algorithm
     cbs = CBSSolver(map, starts, goals, timeout=timeout)
 
-    disjoint, tuvya_splitting = False, False
+    disjoint, tuvya_splitting, imbalanced = False, False, False
     if splitting_strategy == 'disjoint':
         disjoint = True
     elif splitting_strategy == 'tuvya_splitting':
         tuvya_splitting = True
+    elif splitting_strategy == 'tuvya_splitting_imbalanced':
+        tuvya_splitting = True
+        imbalanced = True
 
     start_time = time.time()
-    result = cbs.find_solution(disjoint=disjoint, do_tuvya_splitting=tuvya_splitting)
+    result = cbs.find_solution(disjoint=disjoint, do_tuvya_splitting=tuvya_splitting, balanced_tuvya_splitting=not imbalanced)
     end_time = time.time()
 
     # Check if the algorithm timed out
@@ -239,6 +245,13 @@ def run_full_benchmark():
     run_benchmark_with_these_args('tuvya_splitting', '10-percent', 'atzmon_benchmark_results', 60)
     print('Finished running the benchmark on 10-percent instances with the tuvya splitting strategy.')
 
+    # Run the benchmark on the tuvya splitting strategy with imbalanced splitting
+    print('Running the benchmark on empty instances with the tuvya splitting strategy with imbalanced splitting. This may take a while...')
+    run_benchmark_with_these_args('tuvya_splitting_imbalanced', 'empty', 'atzmon_benchmark_results', 60)
+    print('Finished running the benchmark on empty instances with the tuvya splitting strategy with imbalanced splitting.')
+    run_benchmark_with_these_args('tuvya_splitting_imbalanced', '10-percent', 'atzmon_benchmark_results', 60)
+    print('Finished running the benchmark on 10-percent instances with the tuvya splitting strategy with imbalanced splitting.')
+
 def run_benchmark_with_these_args(splitting_strategy, instance_type, output_directory, timeout):
     '''
     Run the benchmark with the given arguments. This method allows you to run the benchmark with the given arguments
@@ -266,8 +279,8 @@ def run_benchmark_with_these_args(splitting_strategy, instance_type, output_dire
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run the Atzmon benchmark.')
 
-    parser.add_argument('--splitting_strategy', type=str, default="standard", help='The splitting strategy to use. Can be "standard", "disjoint", or "tuvya_splitting". Default is "standard".')
-    parser.add_argument('--instance_type', type=str, default="empty", help='The type of instances to use. Can be "empty" or "10-percent". Default is "empty".')
+    parser.add_argument('--splitting_strategy', type=str, default="standard", help='The splitting strategy to use. Can be "standard", "disjoint", "tuvya_splitting", or "tuvya_splitting_imbalanced". Default is "standard".')
+    parser.add_argument('--instance_type', type=str, default="empty", help='The type of instances to use. Can be "empty", "10-percent", or "all". Default is "empty".')
     parser.add_argument('--output_directory', '-o', type=str, default='atzmon_benchmark_results', help='The directory to save the output to. Default is "atzmon_benchmark_results".')
     parser.add_argument('--timeout', '-t', type=int, default=60, help='The timeout for each instance in seconds. Default is 60 seconds.')
     parser.add_argument('--run_full_benchmark', action='store_true', help='Run the full benchmark specified by Dr. Atzmon. This will run the benchmark on both empty and 10-percent instances with every splitting strategy.')
