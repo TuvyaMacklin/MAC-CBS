@@ -4,3 +4,4 @@ code/results.csv
 .venv
 atzmon_benchmark_results
 .DS_Store
+.vscode
